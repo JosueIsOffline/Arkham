@@ -31,7 +31,7 @@
 ### Via Composer (Recommended)
 
 ```bash
-composer create-project arkham/framework my-app
+composer create-project arkham-dev/framework my-app
 cd my-app
 php -S localhost:8000 -t public
 ```
