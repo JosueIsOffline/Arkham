@@ -1,0 +1,108 @@
+{
+  "name": "arkham/framework",
+  "description": "A lightweight, modern PHP framework built from scratch with MVC architecture, database wizard, and powerful developer tools",
+  "type": "project",
+  "keywords": [
+    "framework",
+    "php",
+    "mvc",
+    "web",
+    "arkham",
+    "database",
+    "twig",
+    "routing",
+    "orm",
+    "query-builder"
+  ],
+  "homepage": "https://arkham-framework.dev",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "JosueIsOffline",
+      "email": "josue@arkham-framework.dev",
+      "homepage": "https://github.com/JosueIsOffline",
+      "role": "Creator"
+    },
+    {
+      "name": "Arkham Framework Team",
+      "email": "team@arkham-framework.dev",
+      "homepage": "https://arkham-framework.dev/team"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/arkham/framework/issues",
+    "forum": "https://github.com/arkham/framework/discussions",
+    "wiki": "https://github.com/arkham/framework/wiki",
+    "docs": "https://arkham-framework.dev/docs",
+    "source": "https://github.com/arkham/framework"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/arkham-framework"
+    },
+    {
+      "type": "patreon",
+      "url": "https://patreon.com/arkham_framework"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "nikic/fast-route": "^1.3",
+    "twig/twig": "^3.21",
+    "ext-pdo": "*",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.2",
+    "phpstan/phpstan": "^1.10",
+    "squizlabs/php_codesniffer": "^3.7",
+    "vimeo/psalm": "^5.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "JosueIsOffline\\Framework\\": "src/",
+      "App\\": "app/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "test:coverage": "phpunit --coverage-html coverage",
+    "analyse": "phpstan analyse src app",
+    "psalm": "psalm",
+    "cs:check": "phpcs",
+    "cs:fix": "phpcbf",
+    "quality": [
+      "@cs:check",
+      "@analyse",
+      "@psalm",
+      "@test"
+    ],
+    "post-create-project-cmd": [
+      "@php -r \"copy('.env.example', '.env');\"",
+      "@php -r \"echo 'Arkham Framework installed successfully!\\n';\"",
+      "@php -r \"echo 'Visit http://localhost:8000 to start the database setup wizard.\\n';\""
+    ],
+    "serve": "php -S localhost:8000 -t public"
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.0.x-dev"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+      "composer/package-versions-deprecated": true
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

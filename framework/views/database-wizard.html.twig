@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙️ Asistente de Configuración de Base de Datos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-4xl bg-white rounded-lg shadow-xl">
+            <!-- Header -->
+            <div class="text-center p-6 border-b">
+                <div class="mx-auto mb-4 w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-database text-2xl text-blue-600"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900">⚙️ Asistente de Configuración de Base de Datos</h1>
+                <p class="text-gray-600 mt-2">Configura tu base de datos y tablas dinámicamente</p>
+                
+                <!-- Progress Bar -->
+                <div class="mt-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                             style="width: {{ (step / 6) * 100 }}%"></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Paso {{ step }} de 6</p>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6">
+                {% if step == 1 %}
+                    <!-- Paso 1: Datos de Conexión -->
+                    <div class="space-y-6">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-server text-blue-600"></i>
+                            Datos de Conexión
+                        </h3>
+
+                        <form method="POST" action="/wizard" class="space-y-4" id="dbForm">
+                            <input type="hidden" name="step" value="2">
+                            
+                            <!-- Selector de Driver -->
+                            <div>
+                                <label for="driver" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-cog mr-1"></i>
+                                    Driver de Base de Datos
+                                </label>
+                                <select id="driver" 
+                                        name="driver" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onchange="updateDriverFields()" 
+                                        required>
+                                    <option value="">Selecciona un driver...</option>
+                                    <option value="mysql" {{ config.driver == 'mysql' ? 'selected' : '' }}>MySQL</option>
+                                    <option value="pgsql" {{ config.driver == 'pgsql' ? 'selected' : '' }}>PostgreSQL</option>
+                                    <option value="sqlite" {{ config.driver == 'sqlite' ? 'selected' : '' }}>SQLite</option>
+                                    <option value="sqlsrv" {{ config.driver == 'sqlsrv' ? 'selected' : '' }}>SQL Server</option>
+                                </select>
+                            </div>
+
+                            <!-- Información del Driver -->
+                            <div id="driverInfo" class="hidden bg-blue-50 p-4 rounded-lg">
+                                <div class="flex items-start">
+                                    <i class="fas fa-info-circle text-blue-500 mr-2 mt-0.5"></i>
+                                    <div class="text-sm text-blue-700">
+                                        <p id="driverDescription"></p>
+                                        <p id="driverRequirements" class="mt-1 font-medium"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Campos específicos para SQLite -->
+                            <div id="sqliteFields" class="hidden space-y-4">
+                                <div>
+                                    <label for="sqlite_path" class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-file-alt mr-1"></i>
+                                        Ruta del archivo SQLite
+                                    </label>
+                                    <input type="text" 
+                                           id="sqlite_path" 
+                                           name="sqlite_path" 
+                                           value="{{ config.sqlite_path|default('database/app.sqlite') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="database/app.sqlite">
+                                    <p class="text-xs text-gray-500 mt-1">El archivo se creará automáticamente si no existe</p>
+                                </div>
+                            </div>
+
+                            <!-- Campos para bases de datos con servidor -->
+                            <div id="serverFields" class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="host" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-server mr-1"></i>
+                                            Servidor
+                                        </label>
+                                        <input type="text" 
+                                               id="host" 
+                                               name="host" 
+                                               value="{{ config.host|default('localhost') }}"
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                               placeholder="localhost">
+                                    </div>
+                                    <div>
+                                        <label for="port" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-plug mr-1"></i>
+                                            Puerto
+                                        </label>
+                                        <input type="number" 
+                                               id="port" 
+                                               name="port" 
+                                               value="{{ config.port|default('') }}"
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                               placeholder="">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-user mr-1"></i>
+                                        Usuario
+                                    </label>
+                                    <input type="text" 
+                                           id="username" 
+                                           name="username" 
+                                           value="{{ config.username|default('') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="">
+                                </div>
+
+                                <div>
+                                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-lock mr-1"></i>
+                                        Contraseña
+                                    </label>
+                                    <input type="password" 
+                                           id="password" 
+                                           name="password" 
+                                           value="{{ config.password|default('') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="••••••••">
+                                </div>
+
+                                <div>
+                                    <label for="database" class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-database mr-1"></i>
+                                        Nombre de la Base de Datos
+                                    </label>
+                                    <input type="text" 
+                                           id="database" 
+                                           name="database" 
+                                           value="{{ config.database|default('mi_aplicacion') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="mi_aplicacion">
+                                </div>
+                            </div>
+
+                            <!-- Configuración Avanzada -->
+                            <div class="border-t pt-4">
+                                <button type="button" 
+                                        onclick="toggleAdvanced()" 
+                                        class="flex items-center text-sm text-gray-600 hover:text-gray-800">
+                                    <i class="fas fa-chevron-right mr-1" id="advancedIcon"></i>
+                                    Configuración Avanzada
+                                </button>
+                                
+                                <div id="advancedFields" class="hidden mt-4 space-y-4 bg-gray-50 p-4 rounded-lg">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="charset" class="block text-sm font-medium text-gray-700 mb-2">Charset</label>
+                                            <select id="charset" 
+                                                    name="charset" 
+                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="utf8mb4" {{ config.charset == 'utf8mb4' ? 'selected' : '' }}>utf8mb4</option>
+                                                <option value="utf8" {{ config.charset == 'utf8' ? 'selected' : '' }}>utf8</option>
+                                                <option value="latin1" {{ config.charset == 'latin1' ? 'selected' : '' }}>latin1</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label for="collation" class="block text-sm font-medium text-gray-700 mb-2">Collation</label>
+                                            <select id="collation" 
+                                                    name="collation" 
+                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="utf8mb4_unicode_ci" {{ config.collation == 'utf8mb4_unicode_ci' ? 'selected' : '' }}>utf8mb4_unicode_ci</option>
+                                                <option value="utf8mb4_general_ci" {{ config.collation == 'utf8mb4_general_ci' ? 'selected' : '' }}>utf8mb4_general_ci</option>
+                                                <option value="utf8_general_ci" {{ config.collation == 'utf8_general_ci' ? 'selected' : '' }}>utf8_general_ci</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="options" class="block text-sm font-medium text-gray-700 mb-2">Opciones adicionales</label>
+                                        <textarea id="options" 
+                                                  name="options" 
+                                                  rows="3"
+                                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                  placeholder="Opciones PDO adicionales (formato JSON)">{{ config.options|default('') }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if error %}
+                                <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                                    <div class="flex">
+                                        <i class="fas fa-exclamation-circle text-red-400 mr-2 mt-0.5"></i>
+                                        <p class="text-red-700">{{ error }}</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% if success %}
+                                <div class="bg-green-50 border border-green-200 rounded-md p-4">
+                                    <div class="flex">
+                                        <i class="fas fa-check-circle text-green-400 mr-2 mt-0.5"></i>
+                                        <p class="text-green-700">{{ success }}</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <button type="submit" 
+                                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                <i class="fas fa-plug mr-2"></i>
+                                Probar Conexión
+                            </button>
+                        </form>
+                    </div>
+
+                {% elseif step == 2 %}
+                    <!-- Paso 2: Conexión Exitosa -->
+                    <div class="space-y-6 text-center">
+                        <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold">Conexión Exitosa</h3>
+                        <p class="text-gray-600">
+                            La conexión a la base de datos se estableció correctamente. Ahora crearemos la base de datos.
+                        </p>
+
+                        <div class="bg-gray-50 p-4 rounded-lg text-left">
+                            <h4 class="font-medium mb-2">Configuración detectada:</h4>
+                            <ul class="text-sm space-y-1">
+                                <li>• <strong>Driver:</strong> 
+                                    {% if config.driver == 'mysql' %}
+                                        <i class="fas fa-database text-blue-600"></i> MySQL
+                                    {% elseif config.driver == 'pgsql' %}
+                                        <i class="fas fa-elephant text-blue-600"></i> PostgreSQL
+                                    {% elseif config.driver == 'sqlite' %}
+                                        <i class="fas fa-file-alt text-blue-600"></i> SQLite
+                                    {% elseif config.driver == 'sqlsrv' %}
+                                        <i class="fas fa-server text-blue-600"></i> SQL Server
+                                    {% endif %}
+                                </li>
+                                {% if config.driver != 'sqlite' %}
+                                    <li>• <strong>Servidor:</strong> {{ config.host }}:{{ config.port }}</li>
+                                    <li>• <strong>Base de datos:</strong> <code class="bg-gray-200 px-1 rounded">{{ config.database }}</code></li>
+                                {% else %}
+                                    <li>• <strong>Archivo:</strong> <code class="bg-gray-200 px-1 rounded">{{ config.database }}</code></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        {% if error %}
+                            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                                <div class="flex">
+                                    <i class="fas fa-exclamation-circle text-red-400 mr-2 mt-0.5"></i>
+                                    <p class="text-red-700">{{ error }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <form method="POST" action="/wizard">
+                            <input type="hidden" name="step" value="3">
+                            <input type="hidden" name="driver" value="{{ config.driver|default('') }}">
+                            <input type="hidden" name="host" value="{{ config.host|default('') }}">
+                            <input type="hidden" name="port" value="{{ config.port|default('') }}">
+                            <input type="hidden" name="database" value="{{ config.database|default('') }}">
+                            <input type="hidden" name="username" value="{{ config.username|default('') }}">
+                            <input type="hidden" name="password" value="{{ config.password|default('') }}">
+                            <input type="hidden" name="charset" value="{{ config.charset|default('utf8mb4') }}">
+                            <input type="hidden" name="collation" value="{{ config.collation|default('utf8mb4_unicode_ci') }}">
+                            
+                            <button type="submit" 
+                                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                <i class="fas fa-database mr-2"></i>
+                                Crear Base de Datos
+                            </button>
+                        </form>
+                    </div>
+
+                {% elseif step == 3 %}
+                    <!-- Paso 3: Base de Datos Creada -->
+                    <div class="space-y-6 text-center">
+                        <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-database text-2xl text-green-600"></i>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold">Base de Datos Creada</h3>
+                        <p class="text-gray-600">
+                            La base de datos se ha creado exitosamente. Ahora configuremos las tablas y sus campos.
+                        </p>
+
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-medium text-green-800 mb-2">Progreso completado:</h4>
+                            <div class="text-sm text-green-700 space-y-1">
+                                <p>✓ Conexión establecida</p>
+                                <p>✓ Base de datos creada</p>
+                                <p>⏳ Configurar tablas</p>
+                                <p>⏳ Crear tablas</p>
+                                <p>⏳ Guardar configuración</p>
+                            </div>
+                        </div>
+
+                        {% if error %}
+                            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                                <div class="flex">
+                                    <i class="fas fa-exclamation-circle text-red-400 mr-2 mt-0.5"></i>
+                                    <p class="text-red-700">{{ error }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <form method="POST" action="/wizard">
+                            <input type="hidden" name="step" value="4">
+                            <input type="hidden" name="driver" value="{{ config.driver|default('') }}">
+                            <input type="hidden" name="host" value="{{ config.host|default('') }}">
+                            <input type="hidden" name="port" value="{{ config.port|default('') }}">
+                            <input type="hidden" name="database" value="{{ config.database|default('') }}">
+                            <input type="hidden" name="username" value="{{ config.username|default('') }}">
+                            <input type="hidden" name="password" value="{{ config.password|default('') }}">
+                            <input type="hidden" name="charset" value="{{ config.charset|default('utf8mb4') }}">
+                            <input type="hidden" name="collation" value="{{ config.collation|default('utf8mb4_unicode_ci') }}">
+                            
+                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                <i class="fas fa-table mr-2"></i>
+                                Configurar Tablas
+                            </button>
+                        </form>
+                    </div>
+
+                {% elseif step == 4 %}
+                    <!-- Paso 4: Configuración de Tablas -->
+                    <div class="space-y-6">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-table text-blue-600"></i>
+                            Configuración de Tablas
+                        </h3>
+
+                        <p class="text-gray-600">
+                            Configura las tablas y campos que deseas crear en tu base de datos.
+                        </p>
+
+                        <form method="POST" action="/wizard" id="tablesForm">
+                            <input type="hidden" name="step" value="5">
+                            <input type="hidden" name="driver" value="{{ config.driver|default('') }}">
+                            <input type="hidden" name="host" value="{{ config.host|default('') }}">
+                            <input type="hidden" name="port" value="{{ config.port|default('') }}">
+                            <input type="hidden" name="database" value="{{ config.database|default('') }}">
+                            <input type="hidden" name="username" value="{{ config.username|default('') }}">
+                            <input type="hidden" name="password" value="{{ config.password|default('') }}">
+                            <input type="hidden" name="charset" value="{{ config.charset|default('utf8mb4') }}">
+                            <input type="hidden" name="collation" value="{{ config.collation|default('utf8mb4_unicode_ci') }}">
+
+                            <div id="tablesContainer">
+                                <!-- Tabla por defecto -->
+                                <div class="table-config bg-gray-50 p-4 rounded-lg mb-6 border-2 border-gray-200" data-table-index="0">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h4 class="font-medium text-lg text-gray-800">📊 Tabla #1</h4>
+                                        <button type="button" onclick="removeTable(0)" class="text-red-600 hover:text-red-800 px-3 py-1 rounded-md border border-red-300 hover:bg-red-50">
+                                            <i class="fas fa-trash mr-1"></i>Eliminar
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="mb-6">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la tabla</label>
+                                        <input type="text" name="table_names[0]" placeholder="ej: usuarios" 
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                    </div>
+
+                                    <div class="fields-container" data-table-index="0">
+                                        <h5 class="font-medium mb-3 text-gray-700">🔧 Campos de la tabla</h5>
+                                        
+                                        <div class="space-y-3">
+                                            <div class="field-config bg-white p-3 rounded-md border border-gray-200" data-field-index="0">
+                                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-600 mb-1">Nombre del Campo</label>
+                                                        <input type="text" name="field_names[0][]" placeholder="ej: id" 
+                                                               class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" required>
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de Dato</label>
+                                                        <select name="field_types[0][]" class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                                            <option value="INT">INT</option>
+                                                            <option value="VARCHAR" selected>VARCHAR</option>
+                                                            <option value="TEXT">TEXT</option>
+                                                            <option value="DATETIME">DATETIME</option>
+                                                            <option value="TIMESTAMP">TIMESTAMP</option>
+                                                            <option value="DECIMAL">DECIMAL</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-600 mb-1">Longitud</label>
+                                                        <input type="text" name="field_lengths[0][]" placeholder="ej: 100" 
+                                                               class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-600 mb-1">Acciones</label>
+                                                        <button type="button" onclick="removeField(0, 0)" class="w-full px-2 py-2 text-red-600 hover:text-red-800 border border-red-300 rounded text-sm hover:bg-red-50">
+                                                            <i class="fas fa-minus mr-1"></i>Eliminar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex flex-wrap gap-4">
+                                                    <label class="flex items-center text-sm">
+                                                        <input type="checkbox" name="field_nullable[0][0]" class="mr-2">
+                                                        <span class="text-gray-700">Permite NULL</span>
+                                                    </label>
+                                                    <label class="flex items-center text-sm">
+                                                        <input type="checkbox" name="field_primary[0][0]" class="mr-2">
+                                                        <span class="text-gray-700">Clave Primaria</span>
+                                                    </label>
+                                                    <label class="flex items-center text-sm">
+                                                        <input type="checkbox" name="field_auto_increment[0][0]" class="mr-2">
+                                                        <span class="text-gray-700">Auto Incremento</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button type="button" onclick="addField(0)" class="mt-4 text-blue-600 hover:text-blue-800 text-sm px-3 py-2 border border-blue-300 rounded-md hover:bg-blue-50">
+                                        <i class="fas fa-plus mr-1"></i>Agregar Campo
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between mt-6">
+                                <button type="button" onclick="addTable()" class="bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 font-medium">
+                                    <i class="fas fa-plus mr-2"></i>Agregar Tabla
+                                </button>
+                                
+                                <button type="submit" class="bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 font-medium">
+                                    <i class="fas fa-cogs mr-2"></i>Crear Tablas
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                {% elseif step == 5 %}
+                    <!-- Paso 5: Tablas Creadas -->
+                    <div class="space-y-6 text-center">
+                        <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold">Tablas Creadas Exitosamente</h3>
+                        <p class="text-gray-600">
+                            Todas las tablas y campos han sido creados correctamente en tu base de datos.
+                        </p>
+
+                        {% if tables %}
+                            <div class="bg-green-50 p-4 rounded-lg text-left">
+                                <h4 class="font-medium text-green-800 mb-3">Tablas creadas:</h4>
+                                {% for table in tables %}
+                                    <div class="mb-4 border-b border-green-200 pb-2">
+                                        <p class="font-medium text-green-800">📊 {{ table.name }}</p>
+                                        <div class="ml-4 text-sm text-green-700 mt-1">
+                                            {% for field in table.fields %}
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="font-mono bg-green-100 px-1 rounded">{{ field.name }}</span>
+                                                    <span>{{ field.type }}{% if field.length %}({{ field.length }}){% endif %}</span>
+                                                    {% if field.primary_key %}<span class="text-xs bg-blue-100 px-1 rounded">PK</span>{% endif %}
+                                                    {% if field.auto_increment %}<span class="text-xs bg-yellow-100 px-1 rounded">AI</span>{% endif %}
+                                                    {% if not field.nullable %}<span class="text-xs bg-red-100 px-1 rounded">NOT NULL</span>{% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if error %}
+                            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                                <div class="flex">
+                                    <i class="fas fa-exclamation-circle text-red-400 mr-2 mt-0.5"></i>
+                                    <p class="text-red-700">{{ error }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <form method="POST" action="/wizard">
+                            <input type="hidden" name="step" value="6">
+                            <input type="hidden" name="driver" value="{{ config.driver|default('') }}">
+                            <input type="hidden" name="host" value="{{ config.host|default('') }}">
+                            <input type="hidden" name="port" value="{{ config.port|default('') }}">
+                            <input type="hidden" name="database" value="{{ config.database|default('') }}">
+                            <input type="hidden" name="username" value="{{ config.username|default('') }}">
+                            <input type="hidden" name="password" value="{{ config.password|default('') }}">
+                            <input type="hidden" name="charset" value="{{ config.charset|default('utf8mb4') }}">
+                            <input type="hidden" name="collation" value="{{ config.collation|default('utf8mb4_unicode_ci') }}">
+                            
+                            <!-- Include table configuration -->
+                            {% if tables %}
+                                {% for tableIndex, table in tables %}
+                                    <input type="hidden" name="table_names[{{ tableIndex }}]" value="{{ table.name }}">
+                                    {% for fieldIndex, field in table.fields %}
+                                        <input type="hidden" name="field_names[{{ tableIndex }}][{{ fieldIndex }}]" value="{{ field.name }}">
+                                        <input type="hidden" name="field_types[{{ tableIndex }}][{{ fieldIndex }}]" value="{{ field.type }}">
+                                        <input type="hidden" name="field_lengths[{{ tableIndex }}][{{ fieldIndex }}]" value="{{ field.length }}">
+                                        {% if field.nullable %}<input type="hidden" name="field_nullable[{{ tableIndex }}][{{ fieldIndex }}]" value="1">{% endif %}
+                                        {% if field.primary_key %}<input type="hidden" name="field_primary[{{ tableIndex }}][{{ fieldIndex }}]" value="1">{% endif %}
+                                        {% if field.auto_increment %}<input type="hidden" name="field_auto_increment[{{ tableIndex }}][{{ fieldIndex }}]" value="1">{% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                            {% endif %}
+                            
+                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                <i class="fas fa-save mr-2"></i>
+                                Guardar Configuración
+                            </button>
+                        </form>
+                    </div>
+
+                {% elseif step == 6 %}
+                    <!-- Paso 6: Configuración Completada -->
+                    <div class="space-y-6 text-center">
+                        <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-2xl text-blue-600"></i>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold">¡Configuración Completada!</h3>
+                        <p class="text-gray-600">
+                            Tu aplicación está completamente configurada. La base de datos, tablas y configuración se han guardado correctamente.
+                        </p>
+
+                        <div class="bg-blue-50 p-6 rounded-lg">
+                            <h4 class="font-medium text-blue-800 mb-3">Resumen de configuración:</h4>
+                            <div class="text-sm text-blue-700 space-y-2 text-left">
+                                <p><strong>🔧 Driver:</strong> {{ config.driver|upper }}</p>
+                                {% if config.driver != 'sqlite' %}
+                                    <p><strong>🖥️ Servidor:</strong> {{ config.host }}:{{ config.port }}</p>
+                                    <p><strong>👤 Usuario:</strong> {{ config.username }}</p>
+                                    <p><strong>🗄️ Base de datos:</strong> {{ config.database }}</p>
+                                {% else %}
+                                    <p><strong>📁 Archivo:</strong> {{ config.database }}</p>
+                                {% endif %}
+                                {% if tables %}
+                                    <p><strong>📊 Tablas creadas:</strong> {{ tables|length }}</p>
+                                    <div class="ml-4">
+                                        {% for table in tables %}
+                                            <p class="text-xs">• {{ table.name }} ({{ table.fields|length }} campos)</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <p><strong>✅ Estado:</strong> <span class="text-green-600 font-medium">Completamente configurado</span></p>
+                            </div>
+                        </div>
+
+                        <a href="/" class="inline-block w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-center font-medium">
+                            <i class="fas fa-rocket mr-2"></i>
+                            Ir a la Aplicación
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tableCount = 1;
+        
+        const driverInfo = {
+            mysql: {
+                description: 'MySQL es el sistema de gestión de bases de datos más popular del mundo.',
+                requirements: 'Requiere: PHP MySQL extension (php-mysql)',
+                defaultPort: '3306',
+                placeholder: {
+                    username: 'root',
+                    database: 'mi_aplicacion'
+                }
+            },
+            pgsql: {
+                description: 'PostgreSQL es un sistema de base de datos objeto-relacional avanzado.',
+                requirements: 'Requiere: PHP PostgreSQL extension (php-pgsql)',
+                defaultPort: '5432',
+                placeholder: {
+                    username: 'postgres',
+                    database: 'mi_aplicacion'
+                }
+            },
+            sqlite: {
+                description: 'SQLite es una base de datos SQL embebida, sin servidor.',
+                requirements: 'Requiere: PHP SQLite extension (php-sqlite3)',
+                defaultPort: '',
+                placeholder: {
+                    username: '',
+                    database: ''
+                }
+            },
+            sqlsrv: {
+                description: 'Microsoft SQL Server es un sistema de gestión de bases de datos empresarial.',
+                requirements: 'Requiere: PHP SQL Server extension (php-sqlsrv)',
+                defaultPort: '1433',
+                placeholder: {
+                    username: 'sa',
+                    database: 'mi_aplicacion'
+                }
+            }
+        };
+
+        function updateDriverFields() {
+            const driver = document.getElementById('driver').value;
+            const driverInfoDiv = document.getElementById('driverInfo');
+            const sqliteFields = document.getElementById('sqliteFields');
+            const serverFields = document.getElementById('serverFields');
+            const portField = document.getElementById('port');
+            const usernameField = document.getElementById('username');
+            const databaseField = document.getElementById('database');
+            
+            if (driver && driverInfo[driver]) {
+                const info = driverInfo[driver];
+                
+                // Mostrar información del driver
+                document.getElementById('driverDescription').textContent = info.description;
+                document.getElementById('driverRequirements').textContent = info.requirements;
+                driverInfoDiv.classList.remove('hidden');
+                
+                // Configurar campos según el driver
+                if (driver === 'sqlite') {
+                    sqliteFields.classList.remove('hidden');
+                    serverFields.classList.add('hidden');
+                } else {
+                    sqliteFields.classList.add('hidden');
+                    serverFields.classList.remove('hidden');
+                    
+                    // Configurar puerto por defecto
+                    if (!portField.value) {
+                        portField.value = info.defaultPort;
+                    }
+                    portField.placeholder = info.defaultPort;
+                    
+                    // Configurar placeholders
+                    usernameField.placeholder = info.placeholder.username;
+                    databaseField.placeholder = info.placeholder.database;
+                }
+            } else {
+                driverInfoDiv.classList.add('hidden');
+                sqliteFields.classList.add('hidden');
+            }
+        }
+
+        function toggleAdvanced() {
+            const advancedFields = document.getElementById('advancedFields');
+            const advancedIcon = document.getElementById('advancedIcon');
+            
+            if (advancedFields.classList.contains('hidden')) {
+                advancedFields.classList.remove('hidden');
+                advancedIcon.classList.remove('fa-chevron-right');
+                advancedIcon.classList.add('fa-chevron-down');
+            } else {
+                advancedFields.classList.add('hidden');
+                advancedIcon.classList.remove('fa-chevron-down');
+                advancedIcon.classList.add('fa-chevron-right');
+            }
+        }
+
+        function addTable() {
+            const container = document.getElementById('tablesContainer');
+            const tableIndex = tableCount;
+            
+            const tableHtml = `
+                <div class="table-config bg-gray-50 p-4 rounded-lg mb-6 border-2 border-gray-200" data-table-index="${tableIndex}">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-medium text-lg text-gray-800">📊 Tabla #${tableIndex + 1}</h4>
+                        <button type="button" onclick="removeTable(${tableIndex})" class="text-red-600 hover:text-red-800 px-3 py-1 rounded-md border border-red-300 hover:bg-red-50">
+                            <i class="fas fa-trash mr-1"></i>Eliminar
+                        </button>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la tabla</label>
+                        <input type="text" name="table_names[${tableIndex}]" placeholder="ej: productos" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+
+                    <div class="fields-container" data-table-index="${tableIndex}">
+                        <h5 class="font-medium mb-3 text-gray-700">🔧 Campos de la tabla</h5>
+                        
+                        <div class="space-y-3">
+                            <div class="field-config bg-white p-3 rounded-md border border-gray-200" data-field-index="0">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Nombre del Campo</label>
+                                        <input type="text" name="field_names[${tableIndex}][]" placeholder="ej: id" 
+                                               class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de Dato</label>
+                                        <select name="field_types[${tableIndex}][]" class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                            <option value="INT">INT</option>
+                                            <option value="VARCHAR" selected>VARCHAR</option>
+                                            <option value="TEXT">TEXT</option>
+                                            <option value="DATETIME">DATETIME</option>
+                                            <option value="TIMESTAMP">TIMESTAMP</option>
+                                            <option value="DECIMAL">DECIMAL</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Longitud</label>
+                                        <input type="text" name="field_lengths[${tableIndex}][]" placeholder="ej: 100" 
+                                               class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Acciones</label>
+                                        <button type="button" onclick="removeField(${tableIndex}, 0)" class="w-full px-2 py-2 text-red-600 hover:text-red-800 border border-red-300 rounded text-sm hover:bg-red-50">
+                                            <i class="fas fa-minus mr-1"></i>Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex flex-wrap gap-4">
+                                    <label class="flex items-center text-sm">
+                                        <input type="checkbox" name="field_nullable[${tableIndex}][0]" class="mr-2">
+                                        <span class="text-gray-700">Permite NULL</span>
+                                    </label>
+                                    <label class="flex items-center text-sm">
+                                        <input type="checkbox" name="field_primary[${tableIndex}][0]" class="mr-2">
+                                        <span class="text-gray-700">Clave Primaria</span>
+                                    </label>
+                                    <label class="flex items-center text-sm">
+                                        <input type="checkbox" name="field_auto_increment[${tableIndex}][0]" class="mr-2">
+                                        <span class="text-gray-700">Auto Incremento</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="addField(${tableIndex})" class="mt-4 text-blue-600 hover:text-blue-800 text-sm px-3 py-2 border border-blue-300 rounded-md hover:bg-blue-50">
+                        <i class="fas fa-plus mr-1"></i>Agregar Campo
+                    </button>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', tableHtml);
+            tableCount++;
+        }
+
+        function removeTable(tableIndex) {
+            const tableElement = document.querySelector(`[data-table-index="${tableIndex}"]`);
+            if (tableElement) {
+                tableElement.remove();
+            }
+        }
+
+        function addField(tableIndex) {
+            const fieldsContainer = document.querySelector(`[data-table-index="${tableIndex}"] .fields-container .space-y-3`);
+            const fields = fieldsContainer.querySelectorAll('.field-config');
+            const fieldIndex = fields.length;
+            
+            const fieldHtml = `
+                <div class="field-config bg-white p-3 rounded-md border border-gray-200" data-field-index="${fieldIndex}">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Nombre del Campo</label>
+                            <input type="text" name="field_names[${tableIndex}][]" placeholder="ej: nombre" 
+                                   class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de Dato</label>
+                            <select name="field_types[${tableIndex}][]" class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                <option value="INT">INT</option>
+                                <option value="VARCHAR" selected>VARCHAR</option>
+                                <option value="TEXT">TEXT</option>
+                                <option value="DATETIME">DATETIME</option>
+                                <option value="TIMESTAMP">TIMESTAMP</option>
+                                <option value="DECIMAL">DECIMAL</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Longitud</label>
+                            <input type="text" name="field_lengths[${tableIndex}][]" placeholder="ej: 255" 
+                                   class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Acciones</label>
+                            <button type="button" onclick="removeField(${tableIndex}, ${fieldIndex})" class="w-full px-2 py-2 text-red-600 hover:text-red-800 border border-red-300 rounded text-sm hover:bg-red-50">
+                                <i class="fas fa-minus mr-1"></i>Eliminar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center text-sm">
+                            <input type="checkbox" name="field_nullable[${tableIndex}][${fieldIndex}]" class="mr-2">
+                            <span class="text-gray-700">Permite NULL</span>
+                        </label>
+                        <label class="flex items-center text-sm">
+                            <input type="checkbox" name="field_primary[${tableIndex}][${fieldIndex}]" class="mr-2">
+                            <span class="text-gray-700">Clave Primaria</span>
+                        </label>
+                        <label class="flex items-center text-sm">
+                            <input type="checkbox" name="field_auto_increment[${tableIndex}][${fieldIndex}]" class="mr-2">
+                            <span class="text-gray-700">Auto Incremento</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            
+            fieldsContainer.insertAdjacentHTML('beforeend', fieldHtml);
+        }
+
+        function removeField(tableIndex, fieldIndex) {
+            const fieldElement = document.querySelector(`[data-table-index="${tableIndex}"] [data-field-index="${fieldIndex}"]`);
+            if (fieldElement) {
+                fieldElement.remove();
+            }
+        }
+
+        // Inicializar campos al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDriverFields();
+        });
+    </script>
+</body>
+</html>

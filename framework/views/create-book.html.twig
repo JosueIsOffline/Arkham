@@ -1,0 +1,55 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Crear Libro - Mi Framework PHP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+	<div class="col-md-8">
+		<div class="card">
+			<div class="card-header">
+				<h4 class="mb-0">
+					<i class="fas fa-book me-2"></i>Crear Nuevo Libro
+				</h4>
+			</div>
+			<div class="card-body">
+				<form action="/books" method="POST">
+					<div class="mb-3">
+						<label for="title" class="form-label">Título</label>
+						<input type="text" 
+							   class="form-control" 
+							   id="title" 
+							   name="title" 
+							   placeholder="Ingresa el título del libro"
+							   required>
+						<div class="form-text">El título debe ser descriptivo y único.</div>
+					</div>
+					
+					<div class="mb-3">
+						<label for="body" class="form-label">Contenido</label>
+						<textarea class="form-control" 
+								  id="body" 
+								  name="body" 
+								  rows="8"
+								  placeholder="Escribe el contenido del libro aquí..."
+								  required></textarea>
+						<div class="form-text">Añade una descripción detallada o el contenido completo.</div>
+					</div>
+					
+					<div class="d-grid gap-2 d-md-flex justify-content-md-end">
+						<a href="/" class="btn btn-secondary me-md-2">
+							<i class="fas fa-arrow-left me-1"></i>Cancelar
+						</a>
+						<button type="submit" class="btn btn-primary">
+							<i class="fas fa-save me-1"></i>Crear Libro
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}

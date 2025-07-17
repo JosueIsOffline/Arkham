@@ -1,0 +1,44 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Inicio - Mi Framework PHP{% endblock %}
+
+{% block content %}
+<div class="row">
+	<div class="col-md-12">
+		<div class="jumbotron bg-primary text-white p-5 rounded">
+			<h1 class="display-4">¡Bienvenido a mi Framework PHP!</h1>
+			<p class="lead">Un framework MVC personalizado construido desde cero con PHP.</p>
+			<hr class="my-4">
+			<p>Explora las funcionalidades y crea contenido increíble.</p>
+			<a class="btn btn-light btn-lg" href="/books/create" role="button">Crear Libro</a>
+		</div>
+	</div>
+</div>
+
+<div class="row mt-5">
+	<div class="col-md-4">
+		<div class="card">
+			<div class="card-body">
+				<h5 class="card-title">MVC Architecture</h5>
+				<p class="card-text">Framework organizado siguiendo el patrón Modelo-Vista-Controlador.</p>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-4">
+		<div class="card">
+			<div class="card-body">
+				<h5 class="card-title">Twig Templates</h5>
+				<p class="card-text">Motor de plantillas potente y flexible para crear vistas dinámicas.</p>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-4">
+		<div class="card">
+			<div class="card-body">
+				<h5 class="card-title">FastRoute</h5>
+				<p class="card-text">Sistema de rutas rápido y eficiente para manejar las URLs.</p>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
