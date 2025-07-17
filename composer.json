@@ -1,5 +1,5 @@
 {
-  "name": "arkham/framework",
+  "name": "arkham-dev/framework",
   "description": "A lightweight, modern PHP framework built from scratch with MVC architecture, database wizard, and powerful developer tools",
   "type": "project",
   "keywords": [
