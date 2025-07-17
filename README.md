@@ -39,7 +39,7 @@ php -S localhost:8000 -t public
 ### Manual Installation
 
 ```bash
-git clone https://github.com/arkham/framework.git my-app
+git clone https://github.com/JosueIsOffline/Arkham.git my-app
 cd my-app
 composer install
 php -S localhost:8000 -t public
