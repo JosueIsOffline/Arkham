@@ -31,6 +31,12 @@
 ### Via Composer (Recommended)
 
 ```bash
+(recommended)
+composer init
+composer require arkham-dev/framework
+
+or
+
 composer create-project arkham-dev/framework my-app
 cd my-app
 php -S localhost:8000 -t public
