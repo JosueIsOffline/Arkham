@@ -13,49 +13,59 @@ class RouteLoader
   }
 
   /**
-   * Carga todas las rutas automáticamente desde archivos PHP en el directorio routes
+   * Load all routes automatically from PHP files
+   * Recursively reads all .php files regardless of structure
    */
   public function loadRoutes(): array
   {
     if (!is_dir($this->routesPath)) {
-      throw new \RuntimeException("El directorio de rutas no existe: {$this->routesPath}");
+      throw new \RuntimeException("Routes directory does not exist: {$this->routesPath}");
     }
 
-    // Buscar todos los archivos PHP en el directorio routes
-    $routeFiles = glob($this->routesPath . '/*.php');
+    // Find all PHP files recursively using RecursiveIterator
+    $iterator = new \RecursiveIteratorIterator(
+      new \RecursiveDirectoryIterator($this->routesPath)
+    );
 
-    foreach ($routeFiles as $routeFile) {
-      $this->loadRouteFile($routeFile);
+    foreach ($iterator as $file) {
+      if ($file->isFile() && $file->getExtension() === 'php') {
+        $this->loadRouteFile($file->getPathname());
+      }
     }
 
     return $this->routes;
   }
 
   /**
-   * Carga rutas desde un archivo específico
+   * Load routes from a specific file
    */
   private function loadRouteFile(string $filePath): void
   {
-    $routes = require $filePath;
+    try {
+      $routes = require $filePath;
 
-    if (!is_array($routes)) {
-      throw new \RuntimeException("El archivo de rutas debe retornar un array: {$filePath}");
+      if (!is_array($routes)) {
+        throw new \RuntimeException("Route file must return an array: {$filePath}");
+      }
+
+      $this->routes = array_merge($this->routes, $routes);
+    } catch (\Exception $e) {
+      throw new \RuntimeException("Error loading route file {$filePath}: " . $e->getMessage());
     }
-
-    $this->routes = array_merge($this->routes, $routes);
   }
 
   /**
-   * Permite cargar rutas desde un directorio específico
+   * Load routes from a specific directory
    */
   public function loadFromDirectory(string $directory): array
   {
     $this->routesPath = $directory;
+    $this->clearRoutes();
     return $this->loadRoutes();
   }
 
   /**
-   * Permite registrar rutas manualmente
+   * Register routes manually
    */
   public function addRoute(string $method, string $path, array $handler): void
   {
@@ -63,7 +73,7 @@ class RouteLoader
   }
 
   /**
-   * Permite registrar múltiples rutas de una vez
+   * Register multiple routes at once
    */
   public function addRoutes(array $routes): void
   {
@@ -75,7 +85,7 @@ class RouteLoader
   }
 
   /**
-   * Obtiene todas las rutas cargadas
+   * Get all loaded routes
    */
   public function getRoutes(): array
   {
@@ -83,10 +93,36 @@ class RouteLoader
   }
 
   /**
-   * Limpia todas las rutas cargadas
+   * Clear all loaded routes
    */
   public function clearRoutes(): void
   {
     $this->routes = [];
+  }
+
+  /**
+   * Get debug information about found route files
+   */
+  public function getDebugInfo(): array
+  {
+    $info = [
+      'routes_path' => $this->routesPath,
+      'total_routes' => count($this->routes),
+      'route_files' => []
+    ];
+
+    if (is_dir($this->routesPath)) {
+      $iterator = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($this->routesPath)
+      );
+
+      foreach ($iterator as $file) {
+        if ($file->isFile() && $file->getExtension() === 'php') {
+          $info['route_files'][] = str_replace($this->routesPath . '/', '', $file->getPathname());
+        }
+      }
+    }
+
+    return $info;
   }
 }
