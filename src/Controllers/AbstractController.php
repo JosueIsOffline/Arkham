@@ -20,8 +20,14 @@ abstract class AbstractController
   public function render(string $template, ?array $data = []): Response
   {
     $content = $this->viewResolver->render($template, $data);
-    $response = new Response($content);
-    return $response;
+    return new Response($content);
+  }
+
+  public function renderWithFlash(string $template, array $data = []): Response
+  {
+    $flashData = $this->getFlashData();
+    $mergedData = array_merge($data, $flashData);
+    return $this->render($template, $mergedData);
   }
 
   public function setRequest(Request $request): void
@@ -45,14 +51,12 @@ abstract class AbstractController
     return $this->render($templateToRender, $data);
   }
 
-
   protected function json(array|object $data, int $status = 200): JsonResponse
   {
     return new JsonResponse($data, $status);
   }
 
-
-  protected function success(array|object $data = [], ?string $message = null, int $status = 200): JsonResponse
+  protected function success(array|object $data = [], ?string $message = null, int $status = 200, ?string $redirectTo = '/'): JsonResponse|Response
   {
     $response = ['success' => true];
 
@@ -64,9 +68,20 @@ abstract class AbstractController
       $response['data'] = $data;
     }
 
-    return new JsonResponse($response, $status);
+    return $this->isAjaxOrApiRequest()
+      ? new JsonResponse($response, $status)
+      : $this->smartResponse($response, $redirectTo, $status);
   }
 
+  protected function smartResponse(array $data = [], string $redirectUrl = '/', int $status = 200): Response
+  {
+    if ($this->isAjaxOrApiRequest()) {
+      return new JsonResponse($data, $status);
+    }
+
+    $this->setFlashData($data);
+    return $this->redirect($redirectUrl);
+  }
 
   protected function error(string $message, int $status = 400, array $details = []): JsonResponse
   {
@@ -82,6 +97,61 @@ abstract class AbstractController
     return new JsonResponse($response, $status);
   }
 
+  protected function isAjaxOrApiRequest(): bool
+  {
+    if (
+      isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+      strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+    ) {
+      return true;
+    }
+
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (strpos($contentType, 'application/json') !== false) {
+      return true;
+    }
+
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    if (
+      strpos($accept, 'application/json') !== false &&
+      strpos($accept, 'text/html') === false
+    ) {
+      return true;
+    }
+
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (strpos($uri, '/api/') !== false) {
+      return true;
+    }
+
+    return false;
+  }
+
+  protected function redirect(string $url, int $status = 302): Response
+  {
+    return new Response('', $status, ['Location' => $url]);
+  }
+
+  protected function setFlashData(array $data): void
+  {
+    if (session_status() === PHP_SESSION_NONE) {
+      session_start();
+    }
+
+    $_SESSION['_flash_data'] = $data;
+  }
+
+  protected function getFlashData(): array
+  {
+    if (session_status() === PHP_SESSION_NONE) {
+      session_start();
+    }
+
+    $data = $_SESSION['_flash_data'] ?? [];
+    unset($_SESSION['_flash_data']);
+
+    return $data;
+  }
 
   protected function getJsonInput(): array
   {
@@ -91,19 +161,16 @@ abstract class AbstractController
     return $data ?? [];
   }
 
-
   protected function isJsonRequest(): bool
   {
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
     return strpos($contentType, 'application/json') !== false;
   }
 
-
   protected function getQueryParams(): array
   {
     return $_GET;
   }
-
 
   protected function getQueryParam(string $name, $default = null)
   {
