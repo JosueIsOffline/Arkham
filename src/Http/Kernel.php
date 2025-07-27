@@ -24,7 +24,7 @@ class Kernel
       $routes = $this->routeLoader->loadRoutes();
 
       foreach ($routes as $route) {
-        $routerCollector->addRoute(...$route);
+        $routerCollector->addRoute($route[0], $route[1], $route);
       }
     });
 
@@ -36,25 +36,76 @@ class Kernel
     $status = $routeInfo[0];
 
     if ($status === \FastRoute\Dispatcher::FOUND) {
-      [, [$controller, $method], $vars] = $routeInfo;
+      [, $route, $vars] = $routeInfo;
+      [$method, $path, $handler] = $route;
+      $protection = $route[3] ?? null;
 
-      $controller = new $controller;
-
-      if ($controller instanceof AbstractController) {
-        $controller->setRequest($request);
+      if ($protection) {
+        $response = $this->applyProtection($request, $protection);
+        if ($response) return $response;
       }
 
-      return call_user_func_array([$controller, $method], $vars);
-    } elseif ($status === \FastRoute\Dispatcher::NOT_FOUND) {
+      [$controller, $method] = $handler;
+      $controllerInstance = new $controller;
 
+      if ($controllerInstance instanceof AbstractController) {
+        $controllerInstance->setRequest($request);
+      }
+
+      return call_user_func_array([$controllerInstance, $method], $vars);
+    } elseif ($status === \FastRoute\Dispatcher::NOT_FOUND) {
       return new Response('404 Not Found', 404);
     } elseif ($status === \FastRoute\Dispatcher::METHOD_NOT_ALLOWED) {
-      // Optional: get allowed methods for this route
-      $allowedMethods = $routeInfo[1];
       return new Response('405 Method Not Allowed', 405);
     }
 
     return new Response('500 Internal Server Error', 500);
+  }
+
+  private function applyProtection(Request $request, $protection): ?Response
+  {
+    if (is_string($protection)) {
+      if ($protection === 'auth') {
+        // Requiere autenticación
+        $middleware = new \JosueIsOffline\Framework\Middleware\AuthMiddleware();
+        return $this->checkMiddleware($request, $middleware);
+      } elseif (strpos($protection, 'role:') === 0) {
+        // Requiere rol específico (ya incluye verificación de login)
+        $role = substr($protection, 5);
+        $middleware = new \JosueIsOffline\Framework\Middleware\RoleMiddleware($role);
+        return $this->checkMiddleware($request, $middleware);
+      }
+    } elseif (is_array($protection)) {
+      // Array de protecciones/middleware
+      foreach ($protection as $item) {
+        if (is_string($item)) {
+          if ($item === 'auth') {
+            $middleware = new \JosueIsOffline\Framework\Middleware\AuthMiddleware();
+          } elseif (strpos($item, 'role:') === 0) {
+            $role = substr($item, 5);
+            $middleware = new \JosueIsOffline\Framework\Middleware\RoleMiddleware($role);
+          } else {
+            continue; // Skip unknown string
+          }
+        } else {
+          $middleware = new $item();
+        }
+
+        $result = $this->checkMiddleware($request, $middleware);
+        if ($result) return $result;
+      }
+    }
+
+    return null;
+  }
+
+  private function checkMiddleware(Request $request, $middleware): ?Response
+  {
+    $response = $middleware->handle($request, function ($req) {
+      return new Response('', 200);
+    });
+
+    return $response->getStatus() !== 200 ? $response : null;
   }
 
   public function setRouterLoader(RouteLoader $routeLoader): void

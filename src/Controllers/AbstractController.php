@@ -2,6 +2,7 @@
 
 namespace JosueIsOffline\Framework\Controllers;
 
+use JosueIsOffline\Framework\Auth\AuthService;
 use JosueIsOffline\Framework\Http\Request;
 use JosueIsOffline\Framework\Http\Response;
 use JosueIsOffline\Framework\Http\JsonResponse;
@@ -175,5 +176,36 @@ abstract class AbstractController
   protected function getQueryParam(string $name, $default = null)
   {
     return $_GET[$name] ?? $default;
+  }
+
+
+  protected function auth(): \JosueIsOffline\Framework\Auth\AuthService
+  {
+    return new \JosueIsOffline\Framework\Auth\AuthService();
+  }
+
+  protected function user(): ?array
+  {
+    return $this->auth()->user();
+  }
+
+  protected function userId(): ?int
+  {
+    return $this->auth()->id();
+  }
+
+  protected function userRole(): ?array
+  {
+    return $this->auth()->role();
+  }
+
+  protected function hasRole(string $role): bool
+  {
+    return $this->auth()->hasRole($role);
+  }
+
+  protected function hasPermission(string $permission): bool
+  {
+    return $this->auth()->hasPermission($permission);
   }
 }
