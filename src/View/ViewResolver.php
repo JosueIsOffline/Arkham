@@ -24,6 +24,12 @@ class ViewResolver
     // Add framework template directories
     $this->addFrameworkPaths();
 
+    $loader = new FilesystemLoader($this->viewPaths);
+    $this->twig = new Environment($loader, [
+      'cache' => false,
+      'debug' => true
+    ]);
+
     $this->twig->addFunction(new \Twig\TwigFunction('auth_user', function () {
       return (new \JosueIsOffline\Framework\Auth\AuthService())->user();
     }));
@@ -35,12 +41,6 @@ class ViewResolver
     $this->twig->addFunction(new \Twig\TwigFunction('has_role', function (string $role) {
       return (new \JosueIsOffline\Framework\Auth\AuthService())->hasRole($role);
     }));
-
-    $loader = new FilesystemLoader($this->viewPaths);
-    $this->twig = new Environment($loader, [
-      'cache' => false,
-      'debug' => true
-    ]);
   }
 
   private function addFrameworkPaths(): void
