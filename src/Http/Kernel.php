@@ -66,17 +66,14 @@ class Kernel
   {
     if (is_string($protection)) {
       if ($protection === 'auth') {
-        // Requiere autenticación
         $middleware = new \JosueIsOffline\Framework\Middleware\AuthMiddleware();
         return $this->checkMiddleware($request, $middleware);
       } elseif (strpos($protection, 'role:') === 0) {
-        // Requiere rol específico (ya incluye verificación de login)
         $role = substr($protection, 5);
         $middleware = new \JosueIsOffline\Framework\Middleware\RoleMiddleware($role);
         return $this->checkMiddleware($request, $middleware);
       }
     } elseif (is_array($protection)) {
-      // Array de protecciones/middleware
       foreach ($protection as $item) {
         if (is_string($item)) {
           if ($item === 'auth') {
@@ -85,7 +82,7 @@ class Kernel
             $role = substr($item, 5);
             $middleware = new \JosueIsOffline\Framework\Middleware\RoleMiddleware($role);
           } else {
-            continue; // Skip unknown string
+            continue;
           }
         } else {
           $middleware = new $item();
