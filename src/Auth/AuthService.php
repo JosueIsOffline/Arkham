@@ -15,6 +15,22 @@ class AuthService
     }
   }
 
+  public function loginById(int $userId): bool
+  {
+    $user = DB::table('users')
+      ->where('id', $userId)
+      ->where('is_active', 1)
+      ->first();
+
+
+    if ($user) {
+      $this->login($user);
+      return true;
+    }
+
+    return false;
+  }
+
   public function attempt(string $email, string $password): bool
   {
     $user = DB::table('users')
