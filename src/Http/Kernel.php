@@ -30,7 +30,7 @@ class Kernel
 
     $routeInfo = $dispatcher->dispatch(
       $request->getMethod(),
-      $request->getUri()
+      $request->getPathInfo()
     );
 
     $status = $routeInfo[0];

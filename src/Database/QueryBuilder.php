@@ -28,13 +28,13 @@ class QueryBuilder
     return $this;
   }
 
-  public function get(): array
+  public function get(): ?array
   {
     $sql = $this->buildSelectQuery();
     return $this->connection->fetchAll($sql, $this->bindings);
   }
 
-  public function first(): array
+  public function first(): ?array
   {
     $sql = $this->buildSelectQuery();
     return $this->connection->fetchOne($sql, $this->bindings);
