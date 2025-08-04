@@ -19,7 +19,7 @@ class AuthService
   {
     $user = DB::table('users')
       ->where('id', $userId)
-      ->where('is_active', 1)
+      ->where('active', 1)
       ->first();
 
 
@@ -35,7 +35,7 @@ class AuthService
   {
     $user = DB::table('users')
       ->where('email', $email)
-      ->where('is_active', 1)
+      ->where('active', 1)
       ->first();
 
     if ($user && password_verify($password, $user['password'])) {
