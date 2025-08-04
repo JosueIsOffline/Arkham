@@ -71,11 +71,25 @@ abstract class AbstractController
 
     return $this->isAjaxOrApiRequest()
       ? new JsonResponse($response, $status)
-      : $this->smartResponse($response, $redirectTo, $status);
+      : $this->smartResponse($response, $status, $redirectTo);
   }
 
-  protected function smartResponse(array $data = [], string $redirectUrl = '/', int $status = 200): Response
+  protected function isFormSubmission(): bool
   {
+    $method = $_SERVER['REQUEST_METHOD'] ?? '';
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+
+    return $method === 'POST' &&
+      strpos($contentType, 'application/x-www-form-urlencoded') !== false;
+  }
+
+  protected function smartResponse(array $data = [],  int $status = 200, string $redirectUrl = '/',): Response|JsonResponse
+  {
+    if ($this->isFormSubmission()) {
+      $this->setFlashData($data);
+      return $this->redirect($redirectUrl);
+    }
+
     if ($this->isAjaxOrApiRequest()) {
       return new JsonResponse($data, $status);
     }
@@ -84,18 +98,32 @@ abstract class AbstractController
     return $this->redirect($redirectUrl);
   }
 
-  protected function error(string $message, int $status = 400, array $details = []): JsonResponse
+  protected function error(array $details = [], string $message, int $status = 400, ?string $redirectTo = null): JsonResponse|Response
   {
     $response = [
       'success' => false,
-      'error' => $message
+      'error' => [
+        'message' => $message,
+      ]
     ];
 
     if (!empty($details)) {
-      $response['details'] = $details;
+      $response['error']['details'] = $details;
     }
 
-    return new JsonResponse($response, $status);
+    if ($this->isFormSubmission()) {
+      $this->setFlashData($response);
+      $redirectUrl = $redirectTo ?? $_SERVER['HTTP_REFERER'] ?? '/';
+      return $this->redirect($redirectUrl);
+    }
+
+    if ($this->isAjaxOrApiRequest()) {
+      return new JsonResponse($response, $status);
+    }
+
+    $this->setFlashData($response);
+    $redirectUrl = $redirectTo ?? $this->getRefererUrl() ?? '/';
+    return $this->redirect($redirectUrl);
   }
 
   protected function isAjaxOrApiRequest(): bool
@@ -131,6 +159,16 @@ abstract class AbstractController
   protected function redirect(string $url, int $status = 302): Response
   {
     return new Response('', $status, ['Location' => $url]);
+  }
+
+  protected function back(): Response
+  {
+    return $this->redirect($this->getRefererUrl());
+  }
+
+  private function getRefererUrl(): string
+  {
+    return $_SERVER['HTTP_REFERER'] ?? '/';
   }
 
   protected function setFlashData(array $data): void
@@ -178,6 +216,50 @@ abstract class AbstractController
     return $_GET[$name] ?? $default;
   }
 
+  // === VALIDATION HELPERS ===
+
+  protected function validateRequired(array $data, array $required): array
+  {
+    $errors = [];
+    foreach ($required as $field) {
+      if (!isset($data[$field]) || empty($data[$field])) {
+        $errors[$field] = ucfirst($field) . ' is required';
+      }
+    }
+    return $errors;
+  }
+
+  protected function validateEmail(string $email): bool
+  {
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+  }
+
+  // === SECURITY HELPERS ===
+
+  protected function requireAuth(): void
+  {
+    if (!$this->auth()->user()) {
+      if ($this->isAjaxOrApiRequest()) {
+        throw new \Exception('Authentication required', 401);
+      }
+      $this->setFlashData(['error' => 'You must be logged in']);
+      header('Location: /login');
+      exit;
+    }
+  }
+
+  protected function requireRole(string $role): void
+  {
+    $this->requireAuth();
+    if (!$this->hasRole($role)) {
+      if ($this->isAjaxOrApiRequest()) {
+        throw new \Exception('Insufficient permissions', 403);
+      }
+      $this->setFlashData(['error' => 'Access denied']);
+      header('Location: /');
+      exit;
+    }
+  }
 
   protected function auth(): \JosueIsOffline\Framework\Auth\AuthService
   {
