@@ -2,7 +2,6 @@
 
 namespace JosueIsOffline\Framework\Controllers;
 
-use JosueIsOffline\Framework\Auth\AuthService;
 use JosueIsOffline\Framework\Http\Request;
 use JosueIsOffline\Framework\Http\Response;
 use JosueIsOffline\Framework\Http\JsonResponse;
@@ -69,9 +68,17 @@ abstract class AbstractController
       $response['data'] = $data;
     }
 
-    return $this->isAjaxOrApiRequest()
-      ? new JsonResponse($response, $status)
-      : $this->smartResponse($response, $status, $redirectTo);
+    if ($this->isFormSubmission()) {
+      $this->setFlashData($response);
+      return $this->redirect($redirectTo);
+    }
+
+    if ($this->isAjaxOrApiRequest()) {
+      return new JsonResponse($data, $status);
+    }
+
+    $this->setFlashData($response);
+    return $this->redirect($redirectTo);
   }
 
   protected function isFormSubmission(): bool
