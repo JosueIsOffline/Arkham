@@ -14,38 +14,23 @@
     "orm",
     "query-builder"
   ],
-  "homepage": "https://arkham-framework.dev",
   "license": "MIT",
   "authors": [
     {
       "name": "JosueIsOffline",
-      "email": "josue@arkham-framework.dev",
+      "email": "josuehernandez2314@gmail.com",
       "homepage": "https://github.com/JosueIsOffline",
       "role": "Creator"
     },
     {
-      "name": "Arkham Framework Team",
-      "email": "team@arkham-framework.dev",
-      "homepage": "https://arkham-framework.dev/team"
+      "name": "Arkham Framework Team"
     }
   ],
   "support": {
-    "issues": "https://github.com/arkham/framework/issues",
-    "forum": "https://github.com/arkham/framework/discussions",
-    "wiki": "https://github.com/arkham/framework/wiki",
-    "docs": "https://arkham-framework.dev/docs",
-    "source": "https://github.com/arkham/framework"
+    "issues": "https://github.com/JosueIsOffline/Arkham/issues",
+    "docs": "https://josueisoffline.vercel.app/writing/guia-completa-de-arkham-framework-en-espanol#respuestas-http",
+    "source": "https://github.com/JosueIsOffline/Arkham"
   },
-  "funding": [
-    {
-      "type": "github",
-      "url": "https://github.com/sponsors/arkham-framework"
-    },
-    {
-      "type": "patreon",
-      "url": "https://patreon.com/arkham_framework"
-    }
-  ],
   "require": {
     "php": ">=8.1",
     "nikic/fast-route": "^1.3",
